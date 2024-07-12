@@ -1,36 +1,61 @@
-from flask import Flask
+from flask import Flask, request, redirect
 
 app = Flask(__name__)
 
+nextId = 4
 topics = [
     {"id" : 1, "title": 'html', "body":"html is ..."},
     {"id" : 2, "title": 'css', "body":"css is ..."},
     {"id" : 3, "title": 'javascript', "body":"javascript is ..."}
 ]
 
-
-@app.route('/')
-def index():
-    liTags = ""
-    for topic in topics:
-        liTags = liTags + f"<li><a href='/read/{topic['id']}/'>{topic['title']}</a></li>"
+def template(contents, content):
     return f"""
     <!doctype html>
     <html>
         <body>
             <h1><a href="/">WEB</a></h1>
             <ol>
-                {liTags}
+                {contents}
             </ol>
-            <h2>welcome</h2>
-            hello, web
+            {content}
+            <ul>
+                <li><a href='/create/'>create</a></li>
+            </ul>
         </body>
     </html>
     """
+    
+def getContents():
+    liTags = ""
+    for topic in topics:
+        liTags = liTags + f"<li><a href='/read/{topic['id']}/'>{topic['title']}</a></li>"
+    return liTags
 
-@app.route('/create/')
+
+@app.route('/')
+def index():
+    return template(getContents(), "<h2>welcome</h2>Hello, web")
+
+@app.route('/create/', methods=["GET", "POST"])
 def create():
-    return "create page"
+    if request.method == "GET":
+        content = """
+        <form action="/create/" method="POST">
+            <p><input type="text" name="title" placeholder="title"></p>
+            <p><textarea name="body" placeholder="body"></textarea></p>
+            <p><input type="submit" value="create"></p>
+        </form>
+        
+        """
+        return template(getContents(), content)
+    elif request.method == "POST":
+        global nextId
+        newTopic = {"id": nextId, "title":request.form["title"], "body":request.form['body']}
+        topics.append(newTopic)
+        url = f"/read/{nextId}/"
+        nextId += 1
+        return redirect(url)
 
 @app.route("/read/<int:id>/")
 def read(id):
@@ -43,20 +68,6 @@ def read(id):
             body = topic['body']
             break
     
-    for topic in topics:
-        liTags = liTags + f"<li><a href='/read/{topic['id']}/'>{topic['title']}</a></li>"
-    return f"""
-    <!doctype html>
-    <html>
-        <body>
-            <h1><a href="/">WEB</a></h1>
-            <ol>
-                {liTags}
-            </ol>
-            <h2>{title}</h2>
-            {body}
-        </body>
-    </html>
-    """
+    return template(getContents(), f"<h2>{title}</h2>{body}")
 
 app.run(debug=True)
